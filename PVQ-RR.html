@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PVQ-RR 価値観分析ワークシート</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --answered-bg: #fffde7;
+            --error-bg: #fff5f5;
+            --error-border: #e74c3c;
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { text-align: center; color: var(--primary-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; }
+        .instruction { background: #eef2f3; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9em; }
+        
+        /* --- 追加: 進捗バーのスタイル --- */
+        .progress-container {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--card-bg);
+            padding: 15px 0;
+            border-bottom: 2px solid var(--accent-color);
+            margin: -30px -30px 20px -30px; /* 親のパディングを相殺して横いっぱいに表示 */
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 30px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        .progress-bar-bg {
+            background-color: #eee;
+            height: 10px;
+            width: 100%;
+            border-radius: 5px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            background-color: var(--accent-color);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s;
+        }
+        /* -------------------------- */
+
+        .question-item {
+            margin-bottom: 15px;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            transition: all 0.3s ease;
+            border-left: 5px solid #ddd;
+        }
+        
+        .question-item.answered {
+            background-color: var(--answered-bg);
+            border-left-color: #f1c40f;
+        }
+
+        .question-item.unanswered {
+            background-color: var(--error-bg);
+            border-left-color: var(--error-border);
+        }
+
+        .question-text { font-weight: bold; margin-bottom: 15px; display: block; }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+        }
+
+        .option-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #fff;
+            transition: background 0.2s, border-color 0.2s;
+            user-select: none;
+        }
+
+        .option-label:hover {
+            background-color: #f0f7ff;
+            border-color: var(--accent-color);
+        }
+
+        .option-label:has(input:checked) {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        input[type="radio"] { margin-bottom: 5px; cursor: pointer; }
+
+        .btn-container { text-align: center; margin-top: 30px; }
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover { background-color: #2980b9; transform: translateY(-2px); }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        #export-btn { background-color: #27ae60; padding: 10px 30px; }
+        #export-btn:hover { background-color: #219653; }
+        #reset-btn { background-color: #95a5a6; padding: 10px 30px; }
+        #reset-btn:hover { background-color: #7f8c8d; }
+
+        #result-area { display: none; margin-top: 20px; padding-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        .positive { color: #e74c3c; font-weight: bold; }
+        .negative { color: #7f8c8d; }
+        
+        .analysis-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-left: 5px solid var(--accent-color);
+            background: #f9f9f9;
+        }
+
+        @media (max-width: 480px) {
+            .options { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .action-buttons { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="main-title">PVQ-RR 価値観分析</h1>
+
+    <div class="progress-container" id="sticky-progress">
+        <div class="progress-info">
+            <span>回答進捗</span>
+            <span id="progress-text">0 / 57 (0%)</span>
+        </div>
+        <div class="progress-info">
+            <div class="progress-bar-bg">
+                <div id="progress-bar" class="progress-bar-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="instruction" id="instruction-area">
+         <p>各項目は特定の人物像を描写しています。その人物の考え方や重視していることが、あなた自身とどれほど一致するかを1〜6点で回答してください。</p>
+         <p style="font-size: 0.8em; color: #666;">1:全く似ていない / 2:似ていない / 3:あまり似ていない / 4:少し似ている / 5:似ている / 6:非常に似ている</p>
+    </div>
+
+    <form id="pvq-form">
+        <div id="questions-container"></div>
+        <div class="btn-container">
+            <button type="button" id="calc-btn" onclick="calculateResults()">結果を分析する</button>
+        </div>
+    </form>
+
+    <div id="result-area">
+        <div class="action-buttons">
+            <button type="button" id="export-btn" onclick="exportPDF()">結果をPDFにエクスポート</button>
+            <button type="button" id="reset-btn" onclick="resetAll()">もう一度最初から回答する</button>
+        </div>
+        
+        <p>全体平均 (MRAT): <span id="mrat-value" style="font-weight:bold;"></span></p>
+        <div id="result-table-container"></div>
+        
+        <div class="analysis-box">
+            <h3>結果の解釈</h3>
+            <p><strong>上位価値観（プラスの値）:</strong> 相対的に重視しているものです。</p>
+            <p id="top-values"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const valueDescriptions = {
+        "自己志向(思考)": { def: "自分自身の知的な能力を自由に発揮し、独自の考えを持つこと。", char: "知的好奇心が旺盛で、既存の枠組みにとらわれず物事を深く探求することを好みます。" },
+        "自己志向(行動)": { def: "自分の行動を自分で決定し、独立して物事を進めること。", char: "依存を嫌い、自律性を重視します。自分の目標を自分で立て、それを実行することに価値を感じます。" },
+        "刺激": { def: "人生における刺激、新しさ、挑戦を求めること。", char: "変化のない日常を避け、ワクワクする体験を好みます。リスクを取ってでも新しい世界を見ようとします。" },
+        "快楽": { def: "自分自身の感覚的な喜びや、楽しさを追求すること。", char: "美味しいものを食べる、心地よい体験をするなど、今この瞬間の満足を重視します。" },
+        "達成": { def: "社会的な基準に照らして、能力を発揮し成功を収めること。", char: "野心的で高い目標を掲げます。人から「有能だ」と認められることに強いモチベーションを感じます。" },
+        "権力(支配)": { def: "人々をコントロールし、リーダーシップを行使すること。", char: "物事を動かす立場にいることを好みます。他人に指示を与え、組織を率いることに価値を感じます。" },
+        "権力(資源)": { def: "富、資産、物質的な豊かさを手に入れること。", char: "経済的な成功を重視します。高価なものを所有することで、自分の力を実感します。" },
+        "面子": { def: "公的なイメージを守り、屈辱を避け、社会的威信を維持すること。", char: "他人からどう見られているかを非常に気にします。恥をかくことを嫌い、敬意を払われることを求めます。" },
+        "安全(個人)": { def: "自分自身の身体的な安全や、身の回りの環境が確実であること。", char: "リスク回避傾向があり、健康管理や防犯、安定した生活基盤の維持に努めます。" },
+        "安全(社会)": { def: "国家の安全、社会秩序の維持、安定した社会構造。", char: "法と秩序を重んじ、社会の混乱を恐れます。組織や国が安定していることに安心を覚えます。" },
+        "伝統": { def: "文化や宗教、家族が受け継いできた習慣や信念を守ること。", char: "昔からのやり方に価値を見出し、謙虚にそれを受け入れます。ルーツや歴史を重んじます。" },
+        "同調(規範)": { def: "規則、法律、公的な権威に従い、それらを破らないこと。", char: "規律正しく、ルールを遵守します。衝動を抑え、社会的な義務を果たすことを優先します。" },
+        "同調(対人)": { def: "日常的なやり取りの中で、他者を怒らせたり不快にさせたりしないこと。", char: "礼儀正しく、協調性が高いです。周囲との摩擦を避け、穏やかな関係性を保とうとします。" },
+        "謙虚": { def: "自分の重要性を誇張せず、控えめに振る舞うこと。", char: "目立つことを好まず、自分の欠点を認める潔さがあります。他者に対して傲慢にならないことを自戒します。" },
+        "博愛(配慮)": { def: "自分の身近な人々(家族や友人)の幸福を願い、具体的に世話を焼くこと。", char: "優しく献的にはです。周囲の人が困っていると放っておけず、感情的なサポートを重視します。" },
+        "博愛(信頼)": { def: "身近なグループの中で、頼りがいのある誠実なメンバーであること。", char: "忠実さと信頼性を大切にします。「あいつに任せれば安心だ」と思われることに誇りを感じます。" },
+        "普遍主義(自然)": { def: "自然環境を保護し、地球との調和を保つこと。", char: "エコロジーに関心が高く、動植物や自然界を人間と同等に大切なものとして扱います。" },
+        "普遍主義(関心)": { def: "全ての人々の平等、社会正義、弱者の保護を求めること。", char: "社会問題に敏感で、不公正な扱いに憤りを感じます。全人類の幸福を広い視野で考えます。" },
+        "普遍主義(寛容)": { def: "自分とは異なる意見や文化、背景を持つ人々を理解し、受け入れること。", char: "多様性を尊重し、対立よりも対話を選びます。オープンマインドな姿勢を貫きます。" }
+    };
+    const questions = [
+        { id: 1, text: "自分で物事を考えるのが重要だ。何事も自分独自のやり方で理解したい。", cat: "自己志向(思考)" },
+        { id: 2, text: "他人が何を必要としているかに敏感であるのが重要だ。知り合いの世話をしたい。", cat: "博愛(配慮)" },
+        { id: 3, text: "たくさんの金銭を持つのが重要だ。高価なものを所有したい。", cat: "権力(資源)" },
+        { id: 4, text: "社会の全ての人が安全であるのが重要だ。国が自分たちを守ってくれることを望む。", cat: "安全(社会)" },
+        { id: 5, text: "人生で楽しいことをするのが重要だ。自分を甘やかすのが好きだ。", cat: "快楽" },
+        { id: 6, text: "世界が平和であるのが重要だ。たとえ遠く離れた国であっても。", cat: "普遍主義(関心)" },
+        { id: 7, text: "他人に対して指図したり、何をすべきか教えたりするのが重要だ。", cat: "権力(支配)" },
+        { id: 8, text: "自分の宗教的、あるいは家族的な信条や慣習に従うのが重要だ。", cat: "伝統" },
+        { id: 9, text: "自分の能力を認めてもらうのが重要だ。人から賞賛されたい。", cat: "達成" },
+        { id: 10, text: "自分の身の安全が保たれるのが重要だ。危険な場所は避ける。", cat: "安全(個人)" },
+        { id: 11, text: "自然環境を守るのが重要だ。自然を大切にしたい。", cat: "普遍主義(自然)" },
+        { id: 12, text: "友人や知人に対して常に忠実であるのが重要だ。身近な人に自分を捧げたい。", cat: "博愛(信頼)" },
+        { id: 13, text: "スリルを求めるのが重要だ。ワクワクするようなことを常に探している。", cat: "刺激" },
+        { id: 14, text: "自分の過ちを認め、欠点に気づくことが重要だ。自惚れたくない。", cat: "謙虚" },
+        { id: 15, text: "権威ある人(親、警察、上司など)を常に敬うのが重要だ。", cat: "同調(規範)" },
+        { id: 16, text: "人から馬鹿にされないことが重要だ。自分の面子を保ちたい。", cat: "面子" },
+        { id: 17, text: "自分の決断に自信を持つのが重要だ。自分の行動に責任を持ちたい。", cat: "自己志向(行動)" },
+        { id: 18, text: "自分と違う考え方をする人に対しても寛容であるのが重要だ。", cat: "普遍主義(寛容)" },
+        { id: 19, text: "他人を怒らせないのが重要だ。人を不快にさせることは絶対にしない。", cat: "同調(対人)" },
+        { id: 20, text: "自分のアイデアを形にするのが重要だ。創造的でありたい。", cat: "自己志向(思考)" },
+        { id: 21, text: "周囲の人を助けるのが重要だ。彼らの幸福のために働きたい。", cat: "博愛(配慮)" },
+        { id: 22, text: "富を築くのが重要だ。豊かな生活を送りたい。", cat: "権力(資源)" },
+        { id: 23, text: "社会秩序が保たれるのが重要だ。混乱は避けるべきだ。", cat: "安全(社会)" },
+        { id: 24, text: "人生を心ゆくまで楽しむのが重要だ。快楽を追求したい。", cat: "快楽" },
+        { id: 25, text: "社会の不平等をなくすのが重要だ。社会正義を求めている。", cat: "普遍主義(関心)" },
+        { id: 26, text: "物事をコントロールし、リーダーシップを発揮するのが重要だ。", cat: "権力(支配)" },
+        { id: 27, text: "昔からの伝統を維持し、それを守り続けるのが重要だ。", cat: "伝統" },
+        { id: 28, text: "非常に有能であるのが重要だ。自分がすることにおいて成功したい。", cat: "達成" },
+        { id: 29, text: "安全で確実な環境に身を置くのが重要だ。無秩序は嫌いだ。", cat: "安全(個人)" },
+        { id: 30, text: "美しい自然を保護し、環境汚染を防ぐのが重要だ。", cat: "普遍主義(自然)" },
+        { id: 31, text: "近しい人たちが自分を頼れるようにするのが重要だ。", cat: "博愛(信頼)" },
+        { id: 32, text: "変化に富んだ人生を送るのが重要だ。新しい体験を求めている。", cat: "刺激" },
+        { id: 33, text: "謙虚に振る舞うのが重要だ。注目を浴びようとはしない。", cat: "謙虚" },
+        { id: 34, text: "規則や法律を厳格に守るのが重要だ。たとえ誰も見ていなくても。", cat: "同調(規範)" },
+        { id: 35, text: "他人から敬意を払われるのが重要だ。恥をかきたくない。", cat: "面子" },
+        { id: 36, text: "自分の意志で行動するのが重要だ。誰にも依存したくない。", cat: "自己志向(行動)" },
+        { id: 37, text: "全ての人の意見を公平に聞くのが重要だ。たとえ同意できなくても。", cat: "普遍主義(寛容)" },
+        { id: 38, text: "礼儀正しく振る舞うのが重要だ。他人に対して無礼なことはしない。", cat: "同調(対人)" },
+        { id: 39, text: "独自の考えを持つのが重要だ。知的好奇心を満たしたい。", cat: "自己志向(思考)" },
+        { id: 40, text: "身近な人のニーズを満たすのが重要だ。常にサポートしたい。", cat: "博愛(配慮)" },
+        { id: 41, text: "社会的地位が高いことが重要だ。他人に影響を与えたい。", cat: "権力(資源)" },
+        { id: 42, text: "強い国であることが重要だ。他国から脅かされないように。", cat: "安全(社会)" },
+        { id: 43, text: "感覚的な刺激を楽しむのが重要だ。", cat: "快楽" },
+        { id: 44, text: "社会の弱い立場の人々を保護するのが重要だ。", cat: "普遍主義(関心)" },
+        { id: 45, text: "他人に指示を与え、物事を進める役割を担うのが重要だ。", cat: "権力(支配)" },
+        { id: 46, text: "先祖代々の習慣を尊重するのが重要だ。", cat: "伝統" },
+        { id: 47, text: "自分の実力を証明するのが重要だ。野心的でありたい。", cat: "達成" },
+        { id: 48, text: "健康に気をつけるのが重要だ。病気や怪我を避けたい。", cat: "安全(個人)" },
+        { id: 49, text: "自然をそのままの形で残すのが重要だ。", cat: "普遍主義(自然)" },
+        { id: 50, text: "友人が困っている時に、迷わず手を貸すのが重要だ。", cat: "博愛(信頼)" },
+        { id: 51, text: "冒険を伴うような刺激的な活動をするのが重要だ。", cat: "刺激" },
+        { id: 52, text: "自分を抑え、満足を知るのが重要だ。分不相応な望みは持たない。", cat: "謙虚" },
+        { id: 53, text: "常に規律正しく行動し、自分を律するのが重要だ。", cat: "同調(規範)" },
+        { id: 54, text: "自分の公的なイメージを損なわないのが重要だ。", cat: "面子" },
+        { id: 55, text: "自分で計画を立て、それを実行するのが重要だ。", cat: "自己志向(行動)" },
+        { id: 56, text: "自分の周りの人たちを理解しようと努めるのが重要だ。", cat: "普遍主義(寛容)" },
+        { id: 57, text: "他人の要求に腹を立てず、丁寧に応じるのが重要だ。", cat: "同調(対人)" }
+    ];
+
+    const categoryMap = {};
+    questions.forEach(q => {
+        if (!categoryMap[q.cat]) categoryMap[q.cat] = [];
+        categoryMap[q.cat].push(q.id);
+    });
+
+    window.onload = function() {
+        renderQuestions();
+        loadSavedAnswers();
+        
+        if (localStorage.getItem('pvq_show_result') === 'true') {
+            calculateResults(true);
+        }
+    };
+
+    function renderQuestions() {
+        const container = document.getElementById('questions-container');
+        questions.forEach(q => {
+            const div = document.createElement('div');
+            div.className = 'question-item';
+            div.id = `q-block-${q.id}`;
+            
+            let optionsHtml = '';
+            for (let i = 1; i <= 6; i++) {
+                optionsHtml += `
+                    <label class="option-label">
+                        <input type="radio" name="q${q.id}" value="${i}" onchange="saveAndMark(${q.id})">
+                        ${i}
+                    </label>`;
+            }
+            div.innerHTML = `
+                <span class="question-text">${q.id}. ${q.text}</span>
+                <div class="options">${optionsHtml}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // --- 追加: 進捗バー更新用関数 ---
+    function updateProgressBar() {
+        const answeredCount = document.querySelectorAll('.question-item.answered').length;
+        const totalQuestions = questions.length;
+        const percentage = Math.round((answeredCount / totalQuestions) * 100);
+
+        document.getElementById('progress-text').innerText = `${answeredCount} / ${totalQuestions} (${percentage}%)`;
+        document.getElementById('progress-bar').style.width = `${percentage}%`;
+        
+        if (percentage === 100) {
+            document.getElementById('progress-bar').style.backgroundColor = '#27ae60';
+        } else {
+            document.getElementById('progress-bar').style.backgroundColor = 'var(--accent-color)';
+        }
+    }
+
+    function saveAndMark(id) {
+        markAsAnswered(id);
+        const form = document.getElementById('pvq-form');
+        const formData = new FormData(form);
+        const answers = {};
+        formData.forEach((value, key) => {
+            answers[key] = value;
+        });
+        localStorage.setItem('pvq_answers', JSON.stringify(answers));
+        updateProgressBar(); // 進捗更新
+    }
+
+    function markAsAnswered(id) {
+        const block = document.getElementById(`q-block-${id}`);
+        if (block) {
+            block.classList.add('answered');
+            block.classList.remove('unanswered');
+        }
+    }
+
+    function loadSavedAnswers() {
+        const savedData = localStorage.getItem('pvq_answers');
+        if (savedData) {
+            const answers = JSON.parse(savedData);
+            for (const [name, value] of Object.entries(answers)) {
+                const radio = document.querySelector(`input[name="${name}"][value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    markAsAnswered(name.replace('q', ''));
+                }
+            }
+        }
+        updateProgressBar(); // 読み込み時に進捗更新
+    }
+
+    function resetAll() {
+        if (confirm("回答データをすべて削除して、最初からやり直しますか？")) {
+            localStorage.removeItem('pvq_answers');
+            localStorage.removeItem('pvq_show_result');
+            location.reload();
+        }
+    }
+
+    function calculateResults(isReload = false) {
+        const form = document.getElementById('pvq-form');
+        const formData = new FormData(form);
+        const unanswered = [];
+        const scores = {};
+        let totalSum = 0;
+
+        questions.forEach(q => {
+            const val = formData.get(`q${q.id}`);
+            const block = document.getElementById(`q-block-${q.id}`);
+            
+            if (!val) {
+                unanswered.push(q.id);
+                if (block) block.classList.add('unanswered');
+            } else {
+                const num = parseInt(val);
+                scores[q.id] = num;
+                totalSum += num;
+            }
+        });
+
+        if (unanswered.length > 0 && !isReload) {
+            alert("未回答の項目があります。番号: " + unanswered.join(", "));
+            document.getElementById(`q-block-${unanswered[0]}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        } else if (unanswered.length > 0 && isReload) {
+            return;
+        }
+
+        localStorage.setItem('pvq_show_result', 'true');
+
+        const mrat = totalSum / 57;
+        document.getElementById('mrat-value').innerText = mrat.toFixed(2);
+
+        const results = [];
+        for (const cat in categoryMap) {
+            const sum = categoryMap[cat].reduce((acc, id) => acc + scores[id], 0);
+            const avg = sum / categoryMap[cat].length;
+            const centered = avg - mrat;
+            results.push({ cat, centered });
+        }
+
+        results.sort((a, b) => b.centered - a.centered);
+
+        let tableHtml = '<table><tr><th style="width: 20%;">価値観カテゴリ</th><th style="width: 15%;">スコア</th><th>定義・特徴</th></tr>';
+        results.forEach(r => {
+            const className = r.centered >= 0 ? 'positive' : 'negative';
+            const sign = r.centered >= 0 ? '+' : '';
+            const desc = valueDescriptions[r.cat];
+            tableHtml += `
+                <tr>
+                    <td style="font-weight: bold;">${r.cat}</td>
+                    <td class="${className}" style="font-size: 1.1em;">${sign}${r.centered.toFixed(2)}</td>
+                    <td style="text-align: left; font-size: 0.9em; padding: 12px;">
+                        <div style="margin-bottom: 5px;"><strong>【定義】</strong> ${desc.def}</div>
+                        <div><strong>【特徴】</strong> ${desc.char}</div>
+                    </td>
+                </tr>`;
+        });
+        tableHtml += '</table>';
+        document.getElementById('result-table-container').innerHTML = tableHtml;
+
+        const top3 = results.slice(0, 3).map(r => r.cat).join('、');
+        document.getElementById('top-values').innerHTML = `あなたの現在の最優先価値観は <strong>「${top3}」</strong> です。`;
+
+        document.getElementById('instruction-area').style.display = 'none';
+        document.getElementById('sticky-progress').style.display = 'none'; // 分析後はバーを隠す
+        document.getElementById('main-title').innerText = 'PVQ-RR 価値観分析結果';
+        form.style.display = 'none';
+        
+        document.getElementById('result-area').style.display = 'block';
+        if (!isReload) window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function exportPDF() {
+        const element = document.querySelector('.container');
+        const actionButtons = document.querySelector('.action-buttons');
+        actionButtons.style.display = 'none';
+        
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     'PVQ-RR_価値観分析結果.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, scrollY: 0, backgroundColor: '#ffffff' },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save().then(() => {
+            actionButtons.style.display = 'flex';
+        });
+    }
+</script>
+</body>
+</html>
